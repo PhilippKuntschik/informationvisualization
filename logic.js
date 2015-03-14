@@ -10,21 +10,35 @@ var USER_TOPTAG_SUF = "/tags?pagesize=1&order=desc&sort=popular&site=stackoverfl
 var TAG = URLBLANK + "tags";
 var TAG_TOP100 = TAG + "?pagesize=100&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 
-var first = true;
+var tagsLoaded = false;
+var usersLoaded = false;
 
+var dataLoadedComplete = function () {
+    return (tagsLoaded && usersLoaded)
+};
 
-function initData(){
-    $.ajax(TAG_TOP100);
-    $.ajax(USER_TOP100).done(function( data ) {
-        $.each(data.items, function (index){
-            if(first){
+function initData() {
+    $.ajax(TAG_TOP100).done(function (data) {
+        tagsLoaded = true;
+        initDia();
+    });
+    $.ajax(USER_TOP100).done(function (data) {
+        $.each(data.items, function (index) {
             updateUserWithTags($(data.items).get(index));
-                first = false;
-            }
         });
+        usersLoaded = true;
+        initDia();
     });
 }
 
-function updateUserWithTags(userObject){
-    $.ajax(USER_TOPTAP_PRE + userObject.user_id + USER_TOPTAG_SUF).done(function (data){});
+function updateUserWithTags(userObject) {
+    $.ajax(USER_TOPTAP_PRE + userObject.user_id + USER_TOPTAG_SUF).done(function (data) {
+        userObject.tag = data.items;
+    });
+}
+
+function initDia() {
+    if (!dataLoadedComplete())
+        return;
+
 }
