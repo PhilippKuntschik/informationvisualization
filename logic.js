@@ -9,7 +9,7 @@ var USER_TOP100 = USER + "?pagesize=10&order=desc&sort=reputation&site=stackover
 var USER_TOPTAG_PRE = USER + "/";
 var USER_TOPTAG_SUF = "/tags?pagesize=1&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 var TAG = URLBLANK + "tags";
-var TAG_TOP100 = TAG + "?pagesize=10&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
+var TAG_TOP100 = TAG + "?pagesize=100&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 //var TAG_TOP100 = "./data/tags.json";
 
 var tagsLoaded = false;
@@ -45,8 +45,8 @@ function updateUserWithTags() {
         $.ajax(USER_TOPTAG_PRE + user.user_id + USER_TOPTAG_SUF).done(function (data) {
             user.tags = data.items;
             var timeout = 1000;
-            if(data.backoff != undefined)
-            timeout = timeout * data.backoff;
+            if (data.backoff != undefined)
+                timeout = timeout * data.backoff;
             setTimeout(updateUserWithTags, timeout);
         });
     }
@@ -61,8 +61,32 @@ function updateUserWithTags() {
 function initDia() {
     if (!dataLoadedComplete())
         return;
-    var x = d3.scale.linear().domain([0, d3.max(data, function(d){return d.count})])
 
-    d3.select("#d3Dia").data(tags).enter().append("div").
-        .style("background-color", "black");
+    var height = 400;
+    var barWidth = ($(document).width()-50) / tags.length;
+
+    var y = d3.scale
+        .linear()
+        .domain([0, d3.max(tags, function (d) {return d.count;})])
+        .range([height, 0]);
+
+    var chart = d3.select(".chart")
+        .attr("height", height)
+        .attr("width", barWidth * tags.length);
+
+    var bar = chart.selectAll("g")
+        .data(tags)
+        .enter().append("g")
+        .attr("transform", function(d, i) { return "translate(" + i * barWidth + ",0)"; });
+
+    bar.append("rect")
+        .attr("y", function(d) { return y(d.count) - 3; })
+        .attr("width", barWidth)
+        .attr("height", function(d) { return height - y(d.count) - 3; });
+
+    bar.append("text")
+        .attr("x", barWidth)
+        .attr("y", function(d) { return y(d.count) + 3; })
+        .attr("dy", ".75em")
+        .text(function(d) {return d.name + " : " + d.count;});
 }
