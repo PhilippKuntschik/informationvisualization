@@ -62,31 +62,55 @@ function initDia() {
     if (!dataLoadedComplete())
         return;
 
+    
+
+
     var height = 400;
+    var upperSpace = 200;
     var barWidth = ($(document).width()-50) / tags.length;
+    var userAlign = ($(document).width()-50) / users.length;
 
     var y = d3.scale
         .linear()
         .domain([0, d3.max(tags, function (d) {return d.count;})])
         .range([height, 0]);
 
+    var circle = d3.superformula()
+        .type("circle")
+        .size(100)
+        .segments(360);
+
     var chart = d3.select(".chart")
-        .attr("height", height)
+        .attr("height", height + upperSpace)
         .attr("width", barWidth * tags.length);
 
-    var bar = chart.selectAll("g")
+    var tag = chart.selectAll("g.tag")
         .data(tags)
         .enter().append("g")
-        .attr("transform", function(d, i) { return "translate(" + i * barWidth + ",0)"; });
+        .attr("transform", function(d, i) { return "translate(" + i * barWidth + ",0)"; })
+        .attr("class", "tag");
 
-    bar.append("rect")
-        .attr("y", function(d) { return y(d.count) - 3; })
+    tag.append("rect")
+        .attr("y", function(d) { return upperSpace + y(d.count) - 3; })
         .attr("width", barWidth)
-        .attr("height", function(d) { return height - y(d.count) - 3; });
+        .attr("height", function(d) { return height - y(d.count) - 3; })
+        .text(function(d){return d.name + " : " + d.count;});
 
-    bar.append("text")
-        .attr("x", barWidth)
-        .attr("y", function(d) { return y(d.count) + 3; })
-        .attr("dy", ".75em")
+    tag.append("title")
         .text(function(d) {return d.name + " : " + d.count;});
+
+/*    tag.append("text")
+        .attr("x", barWidth)
+        .attr("y", function(d) { return upperSpace + y(d.count) + 3; })
+        .attr("dy", ".75em")
+        .text(function(d) {return d.name + " : " + d.count;});*/
+
+    var user = chart.selectAll("g.user")
+        .data(users)
+        .enter().append("g")
+        .attr("transform", function(d, i) { return "translate(" + i * userAlign + ",0)"; })
+        .attr("class", "user");
+
+    user.append("path")
+        .attr("d", circle);
 }
