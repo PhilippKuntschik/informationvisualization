@@ -86,7 +86,7 @@ function initDia() {
 
 var systemstatus = 0;
 
-function next(){
+function next() {
     console.log("systemstatus " + systemstatus);
     switch (systemstatus++) {
         case 0:
@@ -94,6 +94,9 @@ function next(){
             break;
         case 1:
             tagInterlude();
+            break;
+        case 2:
+            userPrelude();
             break;
         default:
     }
@@ -117,49 +120,61 @@ function tagPrelude() {
         .enter().append("g")
         .attr("class", "tag");
 
-        tag.append("title")
-        .text(function(d) {return d.name + " : " + d.count;});
+    tag.append("title")
+        .text(function (d) {
+            return d.name + " : " + d.count;
+        });
 
-    var path = tag.append("path").attr("d", function(d){
+    var path = tag.append("path").attr("d", function (d) {
         var startposX = Math.round(startPos(true, d.preludePositionX));
         var startposY = Math.round(startPos(false, d.preludePositionY));
         var endposX = Math.round(d.preludePositionX);
         var endposY = Math.round(d.preludePositionY);
         var controlX = endposX;
         var controlY = endposY - 50;
-        return "M" + startposX + "," + startposY + " C" + startposX + "," +startposY + " " + controlX + "," + controlY + " " + endposX + "," + endposY;
+        return "M" + startposX + "," + startposY + " C" + startposX + "," + startposY + " " + controlX + "," + controlY + " " + endposX + "," + endposY;
     });
 
     var circle = tag.append("circle")
         .style("fill", "steelblue")
         .attr("opacity", "0.0")
-        .attr("r", userCircleRadius*3 + "px")
-        .attr("transform", function(d){
-            return "translate(" +  [Math.round(startPos(true, d.preludePositionX)) , Math.round(startPos(false, d.preludePositionY))] + ")";
+        .attr("r", userCircleRadius * 3 + "px")
+        .attr("transform", function (d) {
+            return "translate(" + [Math.round(startPos(true, d.preludePositionX)), Math.round(startPos(false, d.preludePositionY))] + ")";
         });
 
     circle.transition()
         .duration(1000)
-        .delay(function(d, i) { return i * 10; })
+        .delay(function (d, i) {
+            return i * 10;
+        })
         .attr("opacity", "1")
         .attr("r", userCircleRadius + "px")
         .attrTween("transform", function (d, i) {
             var path = d3.select(this.parentNode).select("path").node();
             return function (t) {
-                var p = path.getPointAtLength(path.getTotalLength()*t);
-                return "translate(" + [p.x , p.y] + ")";
+                var p = path.getPointAtLength(path.getTotalLength() * t);
+                return "translate(" + [p.x, p.y] + ")";
             };
         })
 }
 
 
 function tagInterlude() {
+    //TODO: width
+    //TODO: scala
+
+    var circleFall = 1000;
+    var barRise = 1000;
+    var barShift = 1000;
+
+    var barWidth = chartWidth / tags.length;
 
     var tag = d3.select(".chart")
         .selectAll("g.tag");
 
     var path = tag.select("path")
-        .attr("d", function(d){
+        .attr("d", function (d) {
             var startposX = Math.round(d.preludePositionX);
             var startposY = Math.round(d.preludePositionY);
             var endposX = startposX;
@@ -169,14 +184,78 @@ function tagInterlude() {
 
     var circle = tag.select("circle");
 
-
     circle.transition()
-       .delay(function(d, i) { return i * 5; })
-       .attrTween("transform", function (d,i) {
-           var path = d3.select(this.parentNode).select("path").node();
-           return function (t) {
-               var p = path.getPointAtLength(path.getTotalLength()*t);
-               return "translate(" + [p.x , p.y] + ")";
-           };
-       })
+        .duration(circleFall)
+        .delay(function (d, i) {
+            return i * 5;
+        })
+        .attrTween("transform", function (d, i) {
+            var path = d3.select(this.parentNode).select("path").node();
+            return function (t) {
+                var p = path.getPointAtLength(path.getTotalLength() * t);
+                return "translate(" + [p.x, p.y] + ")";
+            };
+        })
+        .remove();
+
+    var y = d3.scale
+        .linear()
+        .domain([0, d3.max(tags, function (d) {
+            return d.count;
+        })])
+        .range([chartHeight, 0]);
+
+    var sortPosition = d3.scale.ordinal()
+        .rangeRoundBands([0, chartWidth], .1, 1)
+        .domain(tags.sort(function (a, b) {
+            return b.preludePositionX - a.preludePositionX;
+        })
+            .map(function (d) {
+                return d.name;
+            }));
+
+    tag.sort(function (a, b) {
+        return sortPosition(a.name) - sortPosition(b.name);
+    });
+
+    var rect = tag.append("rect")
+        .attr("x", function (d) {
+            return sortPosition(d.name);
+        })
+        .attr("width", barWidth)
+        .attr("y", chartHeight)
+        .attr("height", 0);
+
+    rect.transition()
+        .duration(barRise)
+        .delay(circleFall)
+        .attr("y", function (d) {
+            return y(d.count);
+        })
+        .attr("height", function (d) {
+            return chartHeight - y(d.count);
+        });
+
+    var sortCount = d3.scale.ordinal()
+        .rangeRoundBands([0, chartWidth], .1, 1)
+        .domain(tags.sort(function (a, b) {
+            return b.count - a.count;
+        })
+            .map(function (d) {
+                return d.name;
+            }));
+
+    tag.sort(function (a, b) {
+        return sortCount(a.name) - sortPosition(b.name);
+    });
+
+    rect.transition()
+        .delay(circleFall + barRise)
+        .attr("x", function (d) {
+            return sortCount(d.name);
+        });
+}
+
+function userPrelude(){
+
 }
