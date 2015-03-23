@@ -4,8 +4,8 @@
 
 var URLBLANK = "https://api.stackexchange.com/2.2/";
 var USER = URLBLANK + "users";
-var USER_TOP100 = USER + "?pagesize=10&order=desc&sort=reputation&site=stackoverflow&filter=!LnNkvq0X7-kuAbMwJEZJkY";
-//var USER_TOP100 = "./data/users.json";
+//var USER_TOP100 = USER + "?pagesize=10&order=desc&sort=reputation&site=stackoverflow&filter=!LnNkvq0X7-kuAbMwJEZJkY";
+var USER_TOP100 = "./data/users.json";
 var USER_TOPTAG_PRE = USER + "/";
 var USER_TOPTAG_SUF = "/tags?pagesize=1&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 var TAG = URLBLANK + "tags";
@@ -15,18 +15,22 @@ var TAG_TOP100 = TAG + "?pagesize=100&order=desc&sort=popular&site=stackoverflow
 var tagsLoaded = false;
 var usersLoaded = false;
 
-var users;
-var tags;
+//will be defined in initData():
+var chartWidth, chartHeight;
+var users, tags;
 
-var dataLoadedComplete = function () {
-    return (tagsLoaded && usersLoaded)
-};
+//
+var userCircleRadius = 15;
+
 
 function initData() {
+
+    chartWidth = $(document).width() - 50;
+    chartHeight = $(document).height() - 50;
+
     $.ajax(TAG_TOP100).done(function (data) {
         tags = data.items;
-        tagsLoaded = true;
-        initDia();
+        updateTagsWithStartPosition();
     });
     $.ajax(USER_TOP100).done(function (data) {
         users = data.items;
@@ -58,59 +62,121 @@ function updateUserWithTags() {
     }
 }
 
+function updateTagsWithStartPosition() {
+    $(tags).each(function () {
+        var $tag = $(this).get(0);
+        $tag.preludePositionX = ((chartWidth - userCircleRadius * 2) * Math.random()) + userCircleRadius;
+        $tag.preludePositionY = ((chartHeight - userCircleRadius * 2) * Math.random()) + userCircleRadius;
+    });
+    tagsLoaded = true;
+    initDia();
+}
+
+
 function initDia() {
-    if (!dataLoadedComplete())
+    if (!(tagsLoaded && usersLoaded))
         return;
 
-    
-
-
-    var height = 400;
-    var upperSpace = 200;
-    var barWidth = ($(document).width()-50) / tags.length;
-    var userAlign = ($(document).width()-50) / users.length;
-
-    var y = d3.scale
-        .linear()
-        .domain([0, d3.max(tags, function (d) {return d.count;})])
-        .range([height, 0]);
-
-    var circle = d3.superformula()
-        .type("circle")
-        .size(100)
-        .segments(360);
 
     var chart = d3.select(".chart")
-        .attr("height", height + upperSpace)
-        .attr("width", barWidth * tags.length);
+        .attr("height", chartHeight)
+        .attr("width", chartWidth);
+    next();
+}
 
-    var tag = chart.selectAll("g.tag")
+var systemstatus = 0;
+
+function next(){
+    console.log("systemstatus " + systemstatus);
+    switch (systemstatus++) {
+        case 0:
+            tagPrelude();
+            break;
+        case 1:
+            tagInterlude();
+            break;
+        default:
+    }
+}
+
+function tagPrelude() {
+    //TODO: tooltip
+    //TODO: color
+    //TODO: drag&drop
+
+    function startPos(isWidth, endPos) {
+        if (isWidth)
+            return chartWidth / 2 + (((chartWidth / 2) - endPos) * .1);
+        else
+            return chartHeight / 2 + (((chartHeight / 2) - endPos) * .1);
+    }
+
+    var tag = d3.select(".chart")
+        .selectAll("g.tag")
         .data(tags)
         .enter().append("g")
-        .attr("transform", function(d, i) { return "translate(" + i * barWidth + ",0)"; })
         .attr("class", "tag");
 
-    tag.append("rect")
-        .attr("y", function(d) { return upperSpace + y(d.count) - 3; })
-        .attr("width", barWidth)
-        .attr("height", function(d) { return height - y(d.count) - 3; })
-        .text(function(d){return d.name + " : " + d.count;});
-
-    tag.append("title")
+        tag.append("title")
         .text(function(d) {return d.name + " : " + d.count;});
 
-/*    tag.append("text")
-        .attr("x", barWidth)
-        .attr("y", function(d) { return upperSpace + y(d.count) + 3; })
-        .attr("dy", ".75em")
-        .text(function(d) {return d.name + " : " + d.count;});*/
+    var path = tag.append("path").attr("d", function(d){
+        var startposX = Math.round(startPos(true, d.preludePositionX));
+        var startposY = Math.round(startPos(false, d.preludePositionY));
+        var endposX = Math.round(d.preludePositionX);
+        var endposY = Math.round(d.preludePositionY);
+        var controlX = endposX;
+        var controlY = endposY - 50;
+        return "M" + startposX + "," + startposY + " C" + startposX + "," +startposY + " " + controlX + "," + controlY + " " + endposX + "," + endposY;
+    });
 
-    var user = chart.selectAll("g.user")
-        .data(users)
-        .enter().append("g")
-        .attr("transform", function(d, i) { return "translate(" + i * userAlign + ",0)"; })
-        .attr("class", "user");
+    var circle = tag.append("circle")
+        .style("fill", "steelblue")
+        .attr("opacity", "0.0")
+        .attr("r", userCircleRadius*3 + "px")
+        .attr("transform", function(d){
+            return "translate(" +  [Math.round(startPos(true, d.preludePositionX)) , Math.round(startPos(false, d.preludePositionY))] + ")";
+        });
 
-    user.append("path")
-        .attr("d", circle);
+    circle.transition()
+        .duration(1000)
+        .delay(function(d, i) { return i * 10; })
+        .attr("opacity", "1")
+        .attr("r", userCircleRadius + "px")
+        .attrTween("transform", function (d, i) {
+            var path = d3.select(this.parentNode).select("path").node();
+            return function (t) {
+                var p = path.getPointAtLength(path.getTotalLength()*t);
+                return "translate(" + [p.x , p.y] + ")";
+            };
+        })
+}
+
+
+function tagInterlude() {
+
+    var tag = d3.select(".chart")
+        .selectAll("g.tag");
+
+    var path = tag.select("path")
+        .attr("d", function(d){
+            var startposX = Math.round(d.preludePositionX);
+            var startposY = Math.round(d.preludePositionY);
+            var endposX = startposX;
+            var endposY = startposY + chartHeight;
+            return "M" + startposX + "," + startposY + " L" + endposX + "," + endposY;
+        });
+
+    var circle = tag.select("circle");
+
+
+    circle.transition()
+       .delay(function(d, i) { return i * 5; })
+       .attrTween("transform", function (d,i) {
+           var path = d3.select(this.parentNode).select("path").node();
+           return function (t) {
+               var p = path.getPointAtLength(path.getTotalLength()*t);
+               return "translate(" + [p.x , p.y] + ")";
+           };
+       })
 }
