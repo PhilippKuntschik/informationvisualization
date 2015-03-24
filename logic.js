@@ -150,17 +150,30 @@ var drag = d3.behavior.drag()
     .on("dragstart", dragstart)
     .on("drag", dragmove);
 
-function dragstart(d){
+function dragstart(d) {
     if (typeof force != 'undefined')
-    force.alpha(1);
+        force.alpha(1);
 }
 
 function dragmove(d) {
-    d3.select(this).attr("transform", function (d) {
-        d.preludePositionX = d3.event.sourceEvent.clientX;
-        d.preludePositionY = d3.event.sourceEvent.clientY;
-        return "translate(" + [Math.round(d.preludePositionX), Math.round(d.preludePositionY)] + ")";
-    });
+    d.preludePositionX = d3.event.sourceEvent.clientX;
+    d.preludePositionY = d3.event.sourceEvent.clientY;
+
+    d3.select(this)
+        .attr("cx", function (d) {
+            return d.preludePositionX;
+        })
+        .attr("cy", function (d) {
+            return d.preludePositionY;
+        });
+    d3.select(this.parentNode).select("defs").select("pattern")
+        .attr("x", function (d) {
+            return d.preludePositionX + d.circleRadius;
+        })
+        .attr("y", function (d) {
+            return d.preludePositionY + d.circleRadius;
+        });
+
 }
 
 function tagPrelude() {
@@ -201,8 +214,11 @@ function tagPrelude() {
         .call(drag)
         .attr("opacity", "0.0")
         .attr("r", userCircleRadius * 3 + "px")
-        .attr("transform", function (d) {
-            return "translate(" + [Math.round(startPos(true, d.preludePositionX)), Math.round(startPos(false, d.preludePositionY))] + ")";
+        .attr("cx", function (d) {
+            return startPos(true, d.preludePositionX);
+        })
+        .attr("cy", function (d) {
+            return startPos(false, d.preludePositionY);
         });
 
     circle.transition()
@@ -213,13 +229,20 @@ function tagPrelude() {
         })
         .attr("opacity", "1")
         .attr("r", userCircleRadius + "px")
-        .attrTween("transform", function (d, i) {
+        .attrTween("cx", function (d, i) {
             var path = d3.select(this.parentNode).select("path").node();
             return function (t) {
                 var p = path.getPointAtLength(path.getTotalLength() * t);
-                return "translate(" + [p.x, p.y] + ")";
+                return p.x;
             };
         })
+        .attrTween("cy", function (d, i) {
+            var path = d3.select(this.parentNode).select("path").node();
+            return function (t) {
+                var p = path.getPointAtLength(path.getTotalLength() * t);
+                return p.y;
+            };
+        });
 }
 
 
@@ -253,11 +276,11 @@ function tagInterlude() {
         .delay(function (d, i) {
             return i * 5;
         })
-        .attrTween("transform", function (d, i) {
+        .attrTween("cy", function (d, i) {
             var path = d3.select(this.parentNode).select("path").node();
             return function (t) {
                 var p = path.getPointAtLength(path.getTotalLength() * t);
-                return "translate(" + [p.x, p.y] + ")";
+                return p.y;
             };
         })
         .remove();
@@ -316,7 +339,7 @@ function tagInterlude() {
     bar.transition()
         .delay(circleFall + barRise)
         .attr("x", function (d) {
-            d.x = sortCount(d.name) + barWidth/2;
+            d.x = sortCount(d.name) + barWidth / 2;
             return sortCount(d.name);
         });
 }
@@ -345,47 +368,64 @@ function userPrelude() {
         });
 
     user.append("defs").append("pattern")
-        .attr("id", function(d){
+        .attr("id", function (d) {
             return d.user_id;
         })
-        .attr("width", userCircleRadius*8)
-        .attr("height", userCircleRadius*8)
-        .attr("patternUnits" , "userSpaceOnUse")
-        .attr("patternTransform", "translate(" + [userCircleRadius*4 , userCircleRadius*4] + ")")
+        .attr("width", userCircleRadius * 8)
+        .attr("height", userCircleRadius * 8)
+        .attr("patternUnits", "userSpaceOnUse")
+        .attr("x", function (d) {
+            d.circleRadius = userCircleRadius * 4;
+            return d.preludePositionX + d.circleRadius;
+        })
+        .attr("y", function (d) {
+            d.circleRadius = userCircleRadius * 4;
+            return d.preludePositionY + d.circleRadius;
+        })
 
         .append("image")
-        .attr("xlink:href", function(d){
+        .attr("xlink:href", function (d) {
             return d.profile_image;
         })
-        .attr("width", userCircleRadius*8)
-        .attr("height", userCircleRadius*8)
+        .attr("width", userCircleRadius * 8)
+        .attr("height", userCircleRadius * 8)
         .attr("x", 0)
         .attr("y", 0);
 
 
     var circle = user.append("circle")
         .attr("opacity", "0.0")
-        .style("fill", function(d) {
+        .style("fill", function (d) {
             return "url(#" + d.user_id + ")";
         })
         .attr("r", userCircleRadius * 4 + "px")
         .call(drag)
-        .attr("transform", function (d) {
-            return "translate(" + [Math.round(d.preludePositionX), Math.round(d.preludePositionY)] + ")";
+        .attr("cx", function (d) {
+            return d.preludePositionX;
+        })
+        .attr("cy", function (d) {
+            return d.preludePositionY;
         });
 
     user.select("defs").select("pattern")
         .transition()
         .duration(1500)
-        .attr("width", userCircleRadius*4)
-        .attr("height", userCircleRadius*4)
-        .attr("patternTransform", "translate(" + [userCircleRadius*2 , userCircleRadius*2] + ")");
+        .attr("width", userCircleRadius * 4)
+        .attr("height", userCircleRadius * 4)
+        .attr("x", function (d) {
+            d.circleRadius = userCircleRadius * 2;
+            return d.preludePositionX + d.circleRadius;
+        })
+        .attr("y", function (d) {
+            d.circleRadius = userCircleRadius * 2;
+            return d.preludePositionY + d.circleRadius;
+        });
 
     user.select("defs").select("pattern").select("image")
         .transition()
         .duration(1500)
-        .attr("width", userCircleRadius*4)
-        .attr("height", userCircleRadius*4);
+        .attr("width", userCircleRadius * 4)
+        .attr("height", userCircleRadius * 4);
 
     var tagContainer = chart.select("g.tag-container")
         .transition()
@@ -405,9 +445,8 @@ function userInterlude() {
     var chart = d3.select(".chart");
 
     force = d3.layout.force()
-        .gravity(.05)
-        .distance(100)
-        .charge(-100)
+        .gravity(0)
+        .charge(-60)
         .size([chartWidth, chartHeight]);
 
     force
@@ -422,23 +461,32 @@ function userInterlude() {
 
     var userContainer = chart.select("g.user-container");
 
-    userContainer.selectAll("g.user")
-        .select("defs").select("pattern")
+    var user = userContainer.selectAll("g.user");
+    user.select("defs").select("pattern")
         .transition()
         .duration(1500)
-        .attr("width", userCircleRadius*2)
-        .attr("height", userCircleRadius*2)
-        .attr("patternTransform", "translate(" + [userCircleRadius , userCircleRadius] + ")");
+        .attr("width", userCircleRadius * 2)
+        .attr("height", userCircleRadius * 2)
+        .attr("x", function (d) {
+            d.circleRadius = userCircleRadius;
+            return d.preludePositionX + userCircleRadius;
+        })
+        .attr("y", function (d) {
+            d.circleRadius = userCircleRadius;
+            return d.preludePositionY + userCircleRadius;
+        });
 
     userContainer.selectAll("g.user")
         .select("defs").select("pattern").select("image")
         .transition()
         .duration(1500)
-        .attr("width", userCircleRadius*2)
-        .attr("height", userCircleRadius*2);
+        .attr("width", userCircleRadius * 2)
+        .attr("height", userCircleRadius * 2);
 
-    var circle = userContainer.selectAll("g.user").select("circle")
-        .transition()
+
+    var circle = user.select("circle");
+
+    circle.transition()
         .duration(1500)
         .attr("opacity", 1)
         .attr("r", userCircleRadius + "px");
@@ -452,7 +500,6 @@ function userInterlude() {
         .attr("class", "link");
 
     link.append("line")
-        .style("z-index", -999)
         .attr("opacity", 0);
 
     link.select("line")
@@ -460,7 +507,13 @@ function userInterlude() {
         .delay(1000)
         .attr("opacity", 1);
 
-    force.on("tick", function () {
+    force.on("tick", function (e) {
+        var kx = .2 * e.alpha, ky = .4 * e.alpha;
+        links.forEach(function (d, i) {
+            d.target.preludePositionX += (d.source.x - d.target.preludePositionX) * kx;
+            d.target.preludePositionY += (d.source.y - 80 - d.target.preludePositionY) * ky;
+        });
+
         link.select("line")
             .attr("x1", function (d) {
                 return d.source.x;
@@ -474,5 +527,25 @@ function userInterlude() {
             .attr("y2", function (d) {
                 return d.target.preludePositionY;
             });
+
+        user.select("defs").select("pattern")
+            .attr("x", function (d, i) {
+                d.circleRadius = userCircleRadius;
+                return d.preludePositionX + d.circleRadius;
+            })
+            .attr("y", function (d) {
+                d.circleRadius = userCircleRadius;
+                return d.preludePositionY + d.circleRadius;
+            });
+
+        user.select("circle")
+            .attr("cx", function (d) {
+                return d.preludePositionX;
+            })
+            .attr("cy", function (d) {
+                return d.preludePositionY;
+            });
+
+
     });
 }
