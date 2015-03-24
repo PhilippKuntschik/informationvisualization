@@ -16,24 +16,27 @@ var tagsLoaded = false;
 var usersLoaded = false;
 
 //will be defined in initData():
-var chartWidth, chartHeight;
+var chartWidth, chartHeight, upperspace;
 var users, tags;
+var links = new Array();
 
 //
 var userCircleRadius = 15;
+var barZooming = 0.8;
 
 
 function initData() {
 
     chartWidth = $(document).width() - 50;
     chartHeight = $(document).height() - 50;
+    upperspace = chartHeight * .2;
 
     $.ajax(TAG_TOP100).done(function (data) {
         tags = data.items;
         updateTagsWithStartPosition();
     });
     $.ajax(USER_TOP100).done(function (data) {
-        users = data.items;
+        users = data; // use "data" if you load from json, and "data.items" if you load from url!
         updateUserWithTags();
     });
 }
@@ -48,6 +51,9 @@ function updateUserWithTags() {
         console.log("helloworld");
         $.ajax(USER_TOPTAG_PRE + user.user_id + USER_TOPTAG_SUF).done(function (data) {
             user.tags = data.items;
+            user.preludePositionX = ((chartWidth - userCircleRadius * 2) * Math.random()) + userCircleRadius;
+            user.preludePositionY = ((chartHeight - userCircleRadius * 2) * Math.random()) + userCircleRadius;
+
             var timeout = 1000;
             if (data.backoff != undefined)
                 timeout = timeout * data.backoff;
@@ -57,6 +63,14 @@ function updateUserWithTags() {
     else {
         //used to save to local file storage
         //saveAs(new Blob([JSON.stringify(users)], {type: "text/plain;charset=utf-8"}), "users.json");
+
+        //if loading from jsonFile, we need to add the prelude values here:
+        $(users).each(function () {
+            $(this).get(0).preludePositionX = ((chartWidth - userCircleRadius * 4) * Math.random()) + userCircleRadius * 2;
+            $(this).get(0).preludePositionY = ((chartHeight - userCircleRadius * 4) * Math.random()) + userCircleRadius * 2;
+        });
+
+
         usersLoaded = true;
         initDia();
     }
@@ -77,10 +91,21 @@ function initDia() {
     if (!(tagsLoaded && usersLoaded))
         return;
 
+    $(tags).each(function(tagIndex, tag){
+        $(users).each(function(userIndex, user){
+            if(tag.name === user.tags[0].name){
+                var link = new Object();
+                link.source = tagIndex;
+                link.target = userIndex;
+                links.push(link)
+            }
+        })
+    });
 
     var chart = d3.select(".chart")
         .attr("height", chartHeight)
         .attr("width", chartWidth);
+
     next();
 }
 
@@ -98,14 +123,36 @@ function next() {
         case 2:
             userPrelude();
             break;
+        case 3:
+            userInterlude();
+            break;
         default:
+            break;
     }
+}
+
+var drag = d3.behavior.drag()
+    .origin(function (d) {
+        return d;
+    })
+    .on("dragstart", dragstarted)
+    .on("drag", dragmove);
+
+function dragstarted(d) {
+    d3.event.sourceEvent.stopPropagation();
+}
+
+function dragmove(d) {
+    d3.select(this).attr("transform", function (d) {
+        d.preludePositionX = d3.event.sourceEvent.clientX;
+        d.preludePositionY = d3.event.sourceEvent.clientY;
+        return "translate(" + [Math.round(d.preludePositionX), Math.round(d.preludePositionY)] + ")";
+    });
 }
 
 function tagPrelude() {
     //TODO: tooltip
     //TODO: color
-    //TODO: drag&drop
 
     function startPos(isWidth, endPos) {
         if (isWidth)
@@ -115,6 +162,7 @@ function tagPrelude() {
     }
 
     var tag = d3.select(".chart")
+        .append("g").attr("class", "tag-container")
         .selectAll("g.tag")
         .data(tags)
         .enter().append("g")
@@ -137,6 +185,7 @@ function tagPrelude() {
 
     var circle = tag.append("circle")
         .style("fill", "steelblue")
+        .call(drag)
         .attr("opacity", "0.0")
         .attr("r", userCircleRadius * 3 + "px")
         .attr("transform", function (d) {
@@ -146,6 +195,7 @@ function tagPrelude() {
     circle.transition()
         .duration(1000)
         .delay(function (d, i) {
+
             return i * 10;
         })
         .attr("opacity", "1")
@@ -168,9 +218,10 @@ function tagInterlude() {
     var barRise = 1000;
     var barShift = 1000;
 
-    var barWidth = chartWidth / tags.length;
+    var barWidth = (chartWidth / tags.length) - 1;
 
     var tag = d3.select(".chart")
+        .select("g.tag-container")
         .selectAll("g.tag");
 
     var path = tag.select("path")
@@ -203,7 +254,7 @@ function tagInterlude() {
         .domain([0, d3.max(tags, function (d) {
             return d.count;
         })])
-        .range([chartHeight, 0]);
+        .range([(chartHeight), upperspace]);
 
     var sortPosition = d3.scale.ordinal()
         .rangeRoundBands([0, chartWidth], .1, 1)
@@ -218,7 +269,7 @@ function tagInterlude() {
         return sortPosition(a.name) - sortPosition(b.name);
     });
 
-    var rect = tag.append("rect")
+    var bar = tag.append("rect")
         .attr("x", function (d) {
             return sortPosition(d.name);
         })
@@ -226,7 +277,7 @@ function tagInterlude() {
         .attr("y", chartHeight)
         .attr("height", 0);
 
-    rect.transition()
+    bar.transition()
         .duration(barRise)
         .delay(circleFall)
         .attr("y", function (d) {
@@ -249,13 +300,71 @@ function tagInterlude() {
         return sortCount(a.name) - sortPosition(b.name);
     });
 
-    rect.transition()
+    bar.transition()
         .delay(circleFall + barRise)
         .attr("x", function (d) {
             return sortCount(d.name);
         });
 }
 
-function userPrelude(){
+function userPrelude() {
+    //TODO: addImage
+    //TODO: barchart unclickable
+    //TODO: circle fly-in
 
+    var chart = d3.select(".chart");
+
+    var fadeOutX = (chartWidth * (1 - barZooming)) / 2;
+    var fadeOutY = (chartHeight * (1 - barZooming));
+
+    var userContainer = chart
+        .append("g").attr("class", "user-container");
+
+    var user = userContainer
+        .selectAll("g.user")
+        .data(users)
+        .enter().append("g")
+        .attr("class", "user");
+
+    user.append("title")
+        .text(function (d) {
+            return d.display_name;
+        });
+
+    var circle = user.append("circle")
+        .style("fill", "red")
+        .attr("opacity", "0.0")
+        .attr("r", userCircleRadius * 4 + "px")
+        .call(drag)
+        .attr("transform", function (d) {
+            return "translate(" + [Math.round(d.preludePositionX), Math.round(d.preludePositionY)] + ")";
+        });
+
+    var tagContainer = chart.select("g.tag-container")
+        .transition()
+        .duration(1500)
+        .attr("opacity", 0.5)
+        .attr("transform", "translate(" + [fadeOutX, fadeOutY] + ")scale(" + [barZooming, barZooming] + ")");
+
+    circle.transition()
+        .duration(1500)
+        .attr("opacity", 1)
+        .attr("r", userCircleRadius * 2 + "px");
+}
+
+function userInterlude() {
+    var chart = d3.select(".chart");
+
+    var tagContainer = chart.select("g.tag-container")
+        .transition()
+        .duration(1500)
+        .attr("opacity", 1)
+        .attr("transform", "translate(" + [0, 0] + ")scale(" + [1, 1] + ")");
+
+    var userContainer = chart.select("g.user-container");
+
+    var circle = userContainer.selectAll("g.user").select("circle").transition()
+        .duration(1500)
+        .attr("opacity", 1)
+        .attr("r", userCircleRadius + "px");
 }
