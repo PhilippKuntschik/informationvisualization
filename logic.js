@@ -91,16 +91,28 @@ function initDia() {
     if (!(tagsLoaded && usersLoaded))
         return;
 
-    $(tags).each(function(tagIndex, tag){
-        $(users).each(function(userIndex, user){
-            if(tag.name === user.tags[0].name){
+    $(tags).each(function (tagIndex, tag) {
+        $(users).each(function (userIndex, user) {
+            if (tag.name === user.tags[0].name) {
                 var link = new Object();
-                link.source = tagIndex;
-                link.target = userIndex;
+                link.source = tag;
+                link.target = user;
                 links.push(link)
             }
         })
     });
+
+    // $(users).each(function(userIndex1, user1){
+    //     $(users).each(function(userIndex2, user2){
+    //         if(user1.tags[0].name === user2.tags[0].name){
+    //             var link = new Object();
+    //             link.source = user1;
+    //             link.target = user2;
+    //             links.push(link)
+    //     }
+    //     })
+    // });
+
 
     var chart = d3.select(".chart")
         .attr("height", chartHeight)
@@ -135,11 +147,12 @@ var drag = d3.behavior.drag()
     .origin(function (d) {
         return d;
     })
-    .on("dragstart", dragstarted)
+    .on("dragstart", dragstart)
     .on("drag", dragmove);
 
-function dragstarted(d) {
-    d3.event.sourceEvent.stopPropagation();
+function dragstart(d){
+    if (typeof force != 'undefined')
+    force.alpha(1);
 }
 
 function dragmove(d) {
@@ -281,7 +294,7 @@ function tagInterlude() {
         .duration(barRise)
         .delay(circleFall)
         .attr("y", function (d) {
-            return y(d.count);
+            return d.y = y(d.count);
         })
         .attr("height", function (d) {
             return chartHeight - y(d.count);
@@ -303,6 +316,7 @@ function tagInterlude() {
     bar.transition()
         .delay(circleFall + barRise)
         .attr("x", function (d) {
+            d.x = sortCount(d.name) + barWidth/2;
             return sortCount(d.name);
         });
 }
@@ -335,6 +349,7 @@ function userPrelude() {
         .style("fill", "red")
         .attr("opacity", "0.0")
         .attr("r", userCircleRadius * 4 + "px")
+        .attr("xlink:href", function(d){})
         .call(drag)
         .attr("transform", function (d) {
             return "translate(" + [Math.round(d.preludePositionX), Math.round(d.preludePositionY)] + ")";
@@ -353,7 +368,19 @@ function userPrelude() {
 }
 
 function userInterlude() {
+    //TODO: highlight 3 greatest on hover
+    //TODO: force elements to bar
     var chart = d3.select(".chart");
+
+    force = d3.layout.force()
+        .gravity(.05)
+        .distance(100)
+        .charge(-100)
+        .size([chartWidth, chartHeight]);
+
+    force
+        .links(links)
+        .start();
 
     var tagContainer = chart.select("g.tag-container")
         .transition()
@@ -363,8 +390,42 @@ function userInterlude() {
 
     var userContainer = chart.select("g.user-container");
 
-    var circle = userContainer.selectAll("g.user").select("circle").transition()
+    var circle = userContainer.selectAll("g.user").select("circle")
+        .transition()
         .duration(1500)
         .attr("opacity", 1)
         .attr("r", userCircleRadius + "px");
+
+    var linkContainer = chart
+        .insert("g", "g.user-container").attr("class", "link-container");
+
+    var link = linkContainer.selectAll("g.link")
+        .data(links)
+        .enter().append("g")
+        .attr("class", "link");
+
+    link.append("line")
+        .style("z-index", -999)
+        .attr("opacity", 0);
+
+    link.select("line")
+        .transition()
+        .delay(1000)
+        .attr("opacity", 1);
+
+    force.on("tick", function () {
+        link.select("line")
+            .attr("x1", function (d) {
+                return d.source.x;
+            })
+            .attr("y1", function (d) {
+                return d.source.y;
+            })
+            .attr("x2", function (d) {
+                return d.target.preludePositionX;
+            })
+            .attr("y2", function (d) {
+                return d.target.preludePositionY;
+            });
+    });
 }
