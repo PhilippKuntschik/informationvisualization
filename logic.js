@@ -322,7 +322,6 @@ function tagInterlude() {
 }
 
 function userPrelude() {
-    //TODO: addImage
     //TODO: barchart unclickable
     //TODO: circle fly-in
 
@@ -345,15 +344,48 @@ function userPrelude() {
             return d.display_name;
         });
 
+    user.append("defs").append("pattern")
+        .attr("id", function(d){
+            return d.user_id;
+        })
+        .attr("width", userCircleRadius*8)
+        .attr("height", userCircleRadius*8)
+        .attr("patternUnits" , "userSpaceOnUse")
+        .attr("patternTransform", "translate(" + [userCircleRadius*4 , userCircleRadius*4] + ")")
+
+        .append("image")
+        .attr("xlink:href", function(d){
+            return d.profile_image;
+        })
+        .attr("width", userCircleRadius*8)
+        .attr("height", userCircleRadius*8)
+        .attr("x", 0)
+        .attr("y", 0);
+
+
     var circle = user.append("circle")
-        .style("fill", "red")
         .attr("opacity", "0.0")
+        .style("fill", function(d) {
+            return "url(#" + d.user_id + ")";
+        })
         .attr("r", userCircleRadius * 4 + "px")
-        .attr("xlink:href", function(d){})
         .call(drag)
         .attr("transform", function (d) {
             return "translate(" + [Math.round(d.preludePositionX), Math.round(d.preludePositionY)] + ")";
         });
+
+    user.select("defs").select("pattern")
+        .transition()
+        .duration(1500)
+        .attr("width", userCircleRadius*4)
+        .attr("height", userCircleRadius*4)
+        .attr("patternTransform", "translate(" + [userCircleRadius*2 , userCircleRadius*2] + ")");
+
+    user.select("defs").select("pattern").select("image")
+        .transition()
+        .duration(1500)
+        .attr("width", userCircleRadius*4)
+        .attr("height", userCircleRadius*4);
 
     var tagContainer = chart.select("g.tag-container")
         .transition()
@@ -389,6 +421,21 @@ function userInterlude() {
         .attr("transform", "translate(" + [0, 0] + ")scale(" + [1, 1] + ")");
 
     var userContainer = chart.select("g.user-container");
+
+    userContainer.selectAll("g.user")
+        .select("defs").select("pattern")
+        .transition()
+        .duration(1500)
+        .attr("width", userCircleRadius*2)
+        .attr("height", userCircleRadius*2)
+        .attr("patternTransform", "translate(" + [userCircleRadius , userCircleRadius] + ")");
+
+    userContainer.selectAll("g.user")
+        .select("defs").select("pattern").select("image")
+        .transition()
+        .duration(1500)
+        .attr("width", userCircleRadius*2)
+        .attr("height", userCircleRadius*2);
 
     var circle = userContainer.selectAll("g.user").select("circle")
         .transition()
