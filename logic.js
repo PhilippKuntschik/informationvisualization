@@ -4,10 +4,10 @@
 
 var URLBLANK = "https://api.stackexchange.com/2.2/";
 var USER = URLBLANK + "users";
-//var USER_TOP100 = USER + "?pagesize=10&order=desc&sort=reputation&site=stackoverflow&filter=!LnNkvq0X7-kuAbMwJEZJkY";
+//var USER_TOP100 = USER + "?pagesize=100&order=desc&sort=reputation&site=stackoverflow&filter=!LnNkvq0X7-kuAbMwJEZJkY";
 var USER_TOP100 = "./data/users.json";
 var USER_TOPTAG_PRE = USER + "/";
-var USER_TOPTAG_SUF = "/tags?pagesize=1&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
+var USER_TOPTAG_SUF = "/tags?pagesize=5&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 var TAG = URLBLANK + "tags";
 var TAG_TOP100 = TAG + "?pagesize=100&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 //var TAG_TOP100 = "./data/tags.json";
@@ -152,7 +152,7 @@ var drag = d3.behavior.drag()
 
 function dragstart(d) {
     if (typeof force != 'undefined')
-        force.alpha(1);
+        force.alpha(.1);
 }
 
 function dragmove(d) {
@@ -446,7 +446,8 @@ function userInterlude() {
 
     force = d3.layout.force()
         .gravity(0)
-        .charge(-60)
+        .charge(-400)
+        .distance(50)
         .size([chartWidth, chartHeight]);
 
     force
