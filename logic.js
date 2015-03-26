@@ -9,8 +9,8 @@ var USER_TOP100 = "./data/users.json";
 var USER_TOPTAG_PRE = USER + "/";
 var USER_TOPTAG_SUF = "/tags?pagesize=5&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 var TAG = URLBLANK + "tags";
-var TAG_TOP100 = TAG + "?pagesize=100&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
-//var TAG_TOP100 = "./data/tags.json";
+//var TAG_TOP100 = TAG + "?pagesize=100&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
+var TAG_TOP100 = "./data/tags.json";
 
 var tagsLoaded = false;
 var usersLoaded = false;
