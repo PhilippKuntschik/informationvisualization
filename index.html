@@ -6,7 +6,7 @@
     <script type="application/javascript" src="3rdParty/Blob.js"></script>
     <script type="application/javascript" src="3rdParty/jquery-1.11.2.js"></script>
     <script type="application/javascript" src="3rdParty/d3.js"></script>
-    <script type="application/javascript" src="3rdParty/superformula.js"></script>
+    <script type="application/javascript" src="3rdParty/d3-tip.js"></script>
     <script type="application/javascript" src="logic.js"></script>
 
     <link rel="stylesheet" type="text/css" href="layout.css">
@@ -17,6 +17,12 @@
 </head>
 <body onload="initData()">
 <svg class="chart"></svg>
-<button onclick="next()">NEXT</button>
+<button onclick="describe(true)">WHAT CAN I SEE HERE?</button>
+<button onclick="next()">STEP FORWARD</button>
+<div class="overlap" style="position: absolute; top: 0%; left: 0%; width: 100%; height: 100%; background-color: white; opacity: 0; z-index: -10; box-sizing: border-box"></div>
+<div class="descriptor" style="position: absolute; top: 20%; left: 30%; width: 40%; height: 50%; background-color: white; opacity: 0; z-index: -10;  box-sizing: border-box; border: solid darkgrey">
+    <div class="text" style="padding: 2%"></div>
+    <button style="position: absolute; right:1%; bottom: 1%;" onclick="describe(false)">close</button>
+</div>
 </body>
 </html>

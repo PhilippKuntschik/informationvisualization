@@ -2,22 +2,23 @@
  * Created by kuntscphili1 on 14.03.2015.
  */
 
-var URLBLANK = "https://api.stackexchange.com/2.2/";
-var USER = URLBLANK + "users";
+//var URLBLANK = "https://api.stackexchange.com/2.2/";
+//var USER = URLBLANK + "users";
 //var USER_TOP100 = USER + "?pagesize=100&order=desc&sort=reputation&site=stackoverflow&filter=!LnNkvq0X7-kuAbMwJEZJkY";
 var USER_TOP100 = "./data/users.json";
-var USER_TOPTAG_PRE = USER + "/";
-var USER_TOPTAG_SUF = "/tags?pagesize=5&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
-var TAG = URLBLANK + "tags";
+//var USER_TOPTAG_PRE = USER + "/";
+//var USER_TOPTAG_SUF = "/tags?pagesize=5&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
+//var TAG = URLBLANK + "tags";
 //var TAG_TOP100 = TAG + "?pagesize=100&order=desc&sort=popular&site=stackoverflow&filter=!9f2SLi*Gz";
 var TAG_TOP100 = "./data/tags.json";
+var DESCRIPTIONS = "./data/descriptions.json";
 
 var tagsLoaded = false;
 var usersLoaded = false;
 
 //will be defined in initData():
 var chartWidth, chartHeight, upperspace;
-var users, tags;
+var users, tags, descriptions;
 var links = new Array();
 
 //
@@ -39,16 +40,18 @@ function initData() {
         users = data; // use "data" if you load from json, and "data.items" if you load from url!
         updateUserWithTags();
     });
+    $.ajax(DESCRIPTIONS).done(function (data) {
+        descriptions = data;
+    });
 }
 
 var i = 999;
 function updateUserWithTags() {
-    $users = $(users);
+    var $users = $(users);
 
     if (i < $users.size()) {
         var user = $users.get(i);
         i++;
-        console.log("helloworld");
         $.ajax(USER_TOPTAG_PRE + user.user_id + USER_TOPTAG_SUF).done(function (data) {
             user.tags = data.items;
             user.preludePositionX = ((chartWidth - userCircleRadius * 2) * Math.random()) + userCircleRadius;
@@ -69,7 +72,6 @@ function updateUserWithTags() {
             $(this).get(0).preludePositionX = ((chartWidth - userCircleRadius * 4) * Math.random()) + userCircleRadius * 2;
             $(this).get(0).preludePositionY = ((chartHeight - userCircleRadius * 4) * Math.random()) + userCircleRadius * 2;
         });
-
 
         usersLoaded = true;
         initDia();
@@ -116,12 +118,52 @@ function initDia() {
 
     var chart = d3.select(".chart")
         .attr("height", chartHeight)
-        .attr("width", chartWidth);
+        .attr("width", chartWidth)
+        .style("opacity", 1);
 
     next();
 }
 
 var systemstatus = 0;
+
+function describe(isDisplayed){
+    console.log("helloworld");
+    if(isDisplayed){
+        console.log("helloworldtrue");
+        d3.select(".overlap")
+            .transition()
+            .duration(500)
+            .style("opacity", 0.85)
+            .style("z-index", 10);
+
+        d3.select(".descriptor")
+            .transition()
+            .duration(500)
+            .style("opacity", 1)
+            .style("z-index", 10);
+
+        d3.select(".descriptor .text")
+            .html(function (){
+                var text;
+                if(descriptions[systemstatus-1] == "")
+                    text = descriptions[2];
+                else text = descriptions[systemstatus-1];
+                return text;
+            })
+    } else {
+        console.log("helloworldfalse");
+        d3.select(".overlap")
+            .transition()
+            .duration(500)
+            .style("opacity", 0)
+            .style("z-index", -10);
+        d3.select(".descriptor")
+            .transition()
+            .duration(500)
+            .style("opacity", 0)
+            .style("z-index", -10);
+    }
+}
 
 function next() {
     console.log("systemstatus " + systemstatus);
@@ -150,6 +192,19 @@ var drag = d3.behavior.drag()
     .on("dragstart", dragstart)
     .on("drag", dragmove);
 
+var tipTag = d3.tip()
+    .attr('class', 'd3-tip')
+    .html(function (d) {
+        return "<span>" + d.name + "</span><br><span>#: " + d.count + "</span>";
+    });
+
+var tipUser = d3.tip()
+    .attr('class', 'd3-tip')
+    .html(function (d) {
+        return "<span>" + d.display_name + "</span><br><span>Rep: " + d.reputation + "</span>";
+    });
+
+
 function dragstart(d) {
     if (typeof force != 'undefined')
         force.alpha(.1);
@@ -177,8 +232,6 @@ function dragmove(d) {
 }
 
 function tagPrelude() {
-    //TODO: tooltip
-    //TODO: color
 
     function startPos(isWidth, endPos) {
         if (isWidth)
@@ -212,6 +265,7 @@ function tagPrelude() {
     var circle = tag.append("circle")
         .style("fill", "steelblue")
         .call(drag)
+        .call(tipTag)
         .attr("opacity", "0.0")
         .attr("r", userCircleRadius * 3 + "px")
         .attr("cx", function (d) {
@@ -219,6 +273,16 @@ function tagPrelude() {
         })
         .attr("cy", function (d) {
             return startPos(false, d.preludePositionY);
+        })
+        .on("mouseover", function (d) {
+            d3.select(this)
+                .style("fill", "brown");
+            tipTag.show(d);
+        })
+        .on("mouseout", function (d) {
+            d3.select(this)
+                .style("fill", "steelblue");
+            tipTag.hide(d);
         });
 
     circle.transition()
@@ -247,8 +311,6 @@ function tagPrelude() {
 
 
 function tagInterlude() {
-    //TODO: width
-    //TODO: scala
 
     var circleFall = 1000;
     var barRise = 1000;
@@ -311,7 +373,20 @@ function tagInterlude() {
         })
         .attr("width", barWidth)
         .attr("y", chartHeight)
-        .attr("height", 0);
+        .attr("height", 0)
+
+        .style("fill", "steelblue")
+        .call(tipTag)
+        .on("mouseover", function (d) {
+            d3.select(this)
+                .style("fill", "brown");
+            tipTag.show(d);
+        })
+        .on("mouseout", function (d) {
+            d3.select(this)
+                .style("fill", "steelblue");
+            tipTag.hide(d);
+        });
 
     bar.transition()
         .duration(barRise)
@@ -345,8 +420,6 @@ function tagInterlude() {
 }
 
 function userPrelude() {
-    //TODO: barchart unclickable
-    //TODO: circle fly-in
 
     var chart = d3.select(".chart");
 
@@ -400,11 +473,18 @@ function userPrelude() {
         })
         .attr("r", userCircleRadius * 4 + "px")
         .call(drag)
+        .call(tipUser)
         .attr("cx", function (d) {
             return d.preludePositionX;
         })
         .attr("cy", function (d) {
             return d.preludePositionY;
+        })
+        .on("mouseover", function (d) {
+            tipUser.show(d);
+        })
+        .on("mouseout", function (d) {
+            tipUser.hide(d);
         });
 
     user.select("defs").select("pattern")
@@ -427,11 +507,15 @@ function userPrelude() {
         .attr("width", userCircleRadius * 4)
         .attr("height", userCircleRadius * 4);
 
-    var tagContainer = chart.select("g.tag-container")
-        .transition()
+    var tagContainer = chart.select("g.tag-container");
+    tagContainer.transition()
         .duration(1500)
         .attr("opacity", 0.5)
         .attr("transform", "translate(" + [fadeOutX, fadeOutY] + ")scale(" + [barZooming, barZooming] + ")");
+
+    tagContainer.selectAll("g.tag").select("rect")
+        .on("mouseover", null)
+        .on("mouseout", null);
 
     circle.transition()
         .duration(1500)
@@ -440,7 +524,6 @@ function userPrelude() {
 }
 
 function userInterlude() {
-    //TODO: highlight 3 greatest on hover
     //TODO: force elements to bar
     var chart = d3.select(".chart");
 
@@ -454,11 +537,24 @@ function userInterlude() {
         .links(links)
         .start();
 
-    var tagContainer = chart.select("g.tag-container")
-        .transition()
+    var tagContainer = chart.select("g.tag-container");
+    tagContainer.transition()
         .duration(1500)
         .attr("opacity", 1)
         .attr("transform", "translate(" + [0, 0] + ")scale(" + [1, 1] + ")");
+
+    var tag = tagContainer.selectAll("g.tag").select("rect");
+    tag
+        .on("mouseover", function (d) {
+            d3.select(this)
+                .style("fill", "brown");
+            tipTag.show(d);
+        })
+        .on("mouseout", function (d) {
+            d3.select(this)
+                .style("fill", "steelblue");
+            tipTag.hide(d);
+        });
 
     var userContainer = chart.select("g.user-container");
 
@@ -475,6 +571,31 @@ function userInterlude() {
         .attr("y", function (d) {
             d.circleRadius = userCircleRadius;
             return d.preludePositionY + userCircleRadius;
+        });
+
+    user
+        .on("mouseover", function (d) {
+            tipUser.show(d);
+            tag.filter(function (t) {
+                var isRelevant = false;
+                d.tags.forEach(function (_d, i) {
+                    if (_d.name == t.name)
+                        isRelevant = true;
+                });
+                return isRelevant;
+            }).style("fill", "brown");
+
+        })
+        .on("mouseout", function (d) {
+            tipUser.hide(d);
+            tag.filter(function (t) {
+                var isRelevant = false;
+                d.tags.forEach(function (_d, i) {
+                    if (_d.name == t.name)
+                        isRelevant = true;
+                });
+                return isRelevant;
+            }).style("fill", "steelblue");
         });
 
     userContainer.selectAll("g.user")

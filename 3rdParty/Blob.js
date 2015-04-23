@@ -7,6 +7,7 @@
  * License: X11/MIT
  * See https://github.com/eligrey/Blob.js/blob/master/LICENSE.md
  */
+
 /*global self, unescape */
 /*jslint bitwise: true, regexp: true, confusion: true, es5: true, vars: true, white: true,
  plusplus: true */
