@@ -651,7 +651,7 @@ function userInterlude() {
             });
 
         user.select("defs").select("pattern")
-            .attr("x", function (d, i) {
+            .attr("x", function (d, i) { 
                 d.circleRadius = userCircleRadius;
                 return d.preludePositionX + d.circleRadius;
             })
