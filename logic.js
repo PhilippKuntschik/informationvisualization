@@ -21,13 +21,10 @@ var chartWidth, chartHeight, upperspace;
 var users, tags, descriptions;
 var links = new Array();
 
-//
 var userCircleRadius = 15;
 var barZooming = 0.8;
 
-
 function initData() {
-
     chartWidth = $(document).width() - 50;
     chartHeight = $(document).height() - 50;
     upperspace = chartHeight * .2;
@@ -194,12 +191,14 @@ var drag = d3.behavior.drag()
 
 var tipTag = d3.tip()
     .attr('class', 'd3-tip')
+    .offset([-4,0])
     .html(function (d) {
         return "<span>" + d.name + "</span><br><span>#: " + d.count + "</span>";
     });
 
 var tipUser = d3.tip()
     .attr('class', 'd3-tip')
+    .offset([-4,0])
     .html(function (d) {
         return "<span>" + d.display_name + "</span><br><span>Rep: " + d.reputation + "</span>";
     });
@@ -246,11 +245,6 @@ function tagPrelude() {
         .data(tags)
         .enter().append("g")
         .attr("class", "tag");
-
-    tag.append("title")
-        .text(function (d) {
-            return d.name + " : " + d.count;
-        });
 
     var path = tag.append("path").attr("d", function (d) {
         var startposX = Math.round(startPos(true, d.preludePositionX));
@@ -435,11 +429,6 @@ function userPrelude() {
         .enter().append("g")
         .attr("class", "user");
 
-    user.append("title")
-        .text(function (d) {
-            return d.display_name;
-        });
-
     user.append("defs").append("pattern")
         .attr("id", function (d) {
             return d.user_id;
@@ -510,7 +499,7 @@ function userPrelude() {
     var tagContainer = chart.select("g.tag-container");
     tagContainer.transition()
         .duration(1500)
-        .attr("opacity", 0.5)
+        .attr("opacity", 0.3)
         .attr("transform", "translate(" + [fadeOutX, fadeOutY] + ")scale(" + [barZooming, barZooming] + ")");
 
     tagContainer.selectAll("g.tag").select("rect")
@@ -667,7 +656,5 @@ function userInterlude() {
             .attr("cy", function (d) {
                 return d.preludePositionY;
             });
-
-
     });
 }

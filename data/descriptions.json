@@ -1,5 +1,6 @@
 [
-  "11",
-  "222",
-  "333"
+  "Zu sehen sind die 100 gefragtesten Kategorien. Eine Kategorie ist dann gefragt, wenn sie häufig verwendet wird. Diese Häufigkeit wird durch 'count' angegeben.<br><br>Die Kategorien werden zufällig platziert. Hierdurch soll die zusammenhangslosigkeit dieser zueinander demonstriert werden. Durch das Bewegen der Maus über eine der Kategorien wird der Name, sowie den 'count' dieser dargestellt.",
+  "Zu sehen sind die 100 gefragtesten Kategorien. Als Vergleichskriterium der Kategorien zueinander eignet sich die Häufigkeit dieser.Da es sich um einen Vergleich von vielen Daten handelt, wurde eine BarChart gewählt.<br><br>Auch hier können die absoluten Zahlen durch das Bewegen der Maus über das einzelne Element abgerufen und somit verglichen werden.",
+  "Zu sehen sind die 100 Nutzer mit der höchsten Reputation. Diese kann durch das beantworten, sowie das stellen von beliebten Fragen erhalten werden.<br><br>Auch hier wurde eine zufällig platzierte Anordnung gewählt um die zusammenhangslosigkeit zu repräsentieren. Das bewegen der Maus über eines der Elemente zeigt den Namen, sowie die Reputation dieser an.",
+  "Die 100 Nutzer mit der höchsten Reputation wurden jeweils an die Kategorie gebunden, welche für den größten Teil ihrer Reputation verantwortlich ist. Auf diese Weise soll präsentiert werden, dass diese Nutzergruppe sich hauptsächlich mit den gefragtesten Kategorien auseinandersetzt. Bis auf eine Person kann diese These komplett bestätigt werden.<br><br>Durch das Bewegen der Maus über eine der Personen werden die bis zu fünf Kategorien mit dem höchsten Einfluss auf die Reputation des Nutzers hervorgehoben."
 ]
